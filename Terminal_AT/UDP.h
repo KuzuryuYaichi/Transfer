@@ -4,12 +4,9 @@
 #define REMOTE_IP "192.168.1.3"
 #define REMOTE_PORT 8080
 #define LOCAL_IP INADDR_ANY
-#define LOCAL_PORT 8080
-
+#define UDP_PORT 8090
 #define MAXSIZE 1024
 
-int UDP0_init(void);
-int UpdataSend(int sockfd);
-int RecvUpdata(int sockfd);
+void* UDP_thread(void *arg);
 
 #endif

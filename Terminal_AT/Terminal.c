@@ -10,6 +10,7 @@
 #include <sys/uio.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <string.h>
@@ -30,9 +31,9 @@
 #include <semaphore.h>
 #include <syslog.h>
 #include "UDP.h"
-#include "TCP.h"
-#include "GPIO.h"
+#include "TCPServer.h"
 #include "Terminal.h"
+#include "TCPServer.h"
 
 /*******            Tcp2Udp_Queue            ********
 ********            ============>            ********
@@ -63,36 +64,32 @@ void t_daemon(char* file)
 
 void HeartAlarmHandler(int i)
 {
-    struct Terminal_MsgSt NetSend_queue = {0};
-    NetSend_queue.MsgType = IPC_NOWAIT;
-    NetSend_queue.MsgBuff[1] = HEART;
-    msgsnd(CanRecv_qid, &NetSend_queue, 2, IPC_NOWAIT);
     alarm(10);
 }
 
-void prepare()
+void initEnv()
 {
-    signal(SIGPIPE,SIG_IGN);
+    signal(SIGCHLD, SIG_DFL);
+    signal(SIGPIPE, SIG_IGN);
     signal(SIGALRM,HeartAlarmHandler);
+}
 
-    initTerminal();
-    ResetRecord();
-    File_Configuration();
-    init_mutex();
-    
+void initQueue()
+{
     while(Tcp2Udp_qid<=0)
     {
         Tcp2Udp_qid = msgget(IPC_PRIVATE,IPC_CREAT|0666);
-        if(Tcp2Udp_qid<=0)printf("creat TCP queue failed !\r\n");
+        if(Tcp2Udp_qid<=0)printf("creat Tcp2Udp queue failed !\r\n");
 
         struct timeval timeout={0,10000};
         select(0,NULL,NULL,NULL,&timeout);
     }
     printf("Tcp2Udp_qid is : %d \r\n",Tcp2Udp_qid);
+
     while(Udp2Tcp_qid<=0)
     {
         Udp2Tcp_qid = msgget(IPC_PRIVATE,IPC_CREAT|0666);
-        if(Udp2Tcp_qid<=0)printf("creat UDP queue failed !\r\n");
+        if(Udp2Tcp_qid<=0)printf("creat Udp2Tcp queue failed !\r\n");
 
         struct timeval timeout={0,10000};
         select(0,NULL,NULL,NULL,&timeout);
@@ -100,11 +97,6 @@ void prepare()
     printf("Udp2Tcp_qid is : %d \r\n",Udp2Tcp_qid);
 
     printf("t2 pid is:%d\r\n",getpid());
-}
-
-void init_mutex()
-{
-    
 }
 
 void main_loop()
@@ -131,26 +123,14 @@ void main_loop()
         return;
     }
 
-    if(msgctl(TCP_tid,IPC_RMID,0)<0) perror("TCP IPC_MSG_QUEUE REMOVE FAILED\r\n");
-    if(msgctl(UDP_tid,IPC_RMID,0)<0) perror("UDP IPC_MSG_QUEUE REMOVE FAILED\r\n");
+    if(msgctl(TCP_tid,IPC_RMID,0) < 0) perror("TCP IPC_MSG_QUEUE REMOVE FAILED\r\n");
+    if(msgctl(UDP_tid,IPC_RMID,0) < 0) perror("UDP IPC_MSG_QUEUE REMOVE FAILED\r\n");
 }
 
 int main(int argc,char *argv[])
 {
     printf("/**************************************APP**************************************/\r\n");
-    prepare();
-
-    if(argc > 1)
-    {
-        isRunning = state = argv[2][0];
-        if(state == PROGRAM_VIRTUAL_SERVER)
-            ATState = argv[3][0];
-        else if(state == PROGRAM_ACTUAL_SERVER)
-            ATState = NEED_TO_INIT;
-        printf("From:%s To:%s ATInit:%s Site_comm_token:%s\r\n",argv[1],argv[2],argv[3],argv[4]);
-        main_loop();
-    }
-    else printf("�Ƿ�����ָ��\r\n");
+    initEnv();
 
     pid_t pid = fork();
     if(pid < 0)
@@ -162,17 +142,26 @@ int main(int argc,char *argv[])
     {
         exit(0);
     }
-    setsid();
+    umask(0);
+    //创建新的会话，设置本进程为进程组的首领
+    pid_t sid = setsid();
+    if (sid < 0)
+    {
+        return 0;
+    }
     char szPath[128] = {0};
     if(getcwd(szPath,sizeof(szPath)) == NULL)
-    {
-        perror("getcwd");
-        exit(1);
-    }
-    else
     {
         chdir(szPath);
         printf("set current path succ [%s]\n",szPath);
     }
-    umask(0);
+    else
+    {
+        perror("getcwd");
+        exit(1);
+    }
+    
+    initQueue();
+    main_loop();
+    return 0;
 }

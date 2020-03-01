@@ -15,26 +15,12 @@
 #include <signal.h>
 #include <fcntl.h>
 #include "TCPServer.h"
-#include "typeDefine.h"
+#include "TypeDefine.h"
 #include "EpollEvent.h"
 
 extern int Tcp2Udp_qid, Udp2Tcp_qid;
 
-static bool isRunning = true;
-
-void* TCP_thread(void *arg)
-{
-    int listen_fd = SocketInit("", LOCAL_PORT);
-    listen(listen_fd,LISTENQ);
-    while(isRunning)
-    {
-        t_daemon("tcpfile");
-        do_epoll(listen_fd, handle_events);
-    }
-    close(listen_fd);
-}
-
-static int SocketInit(const char* ip,int port)
+static int SocketInit(const char *ip,int port)
 {
     struct sockaddr_in servaddr;
     int listenfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -61,9 +47,25 @@ static int SocketInit(const char* ip,int port)
         perror("bind error: ");
         exit(1);
     }
-    printf("listen on: %d, listenfd = %d\n",PORT,listenfd);
+    printf("listen on: %d, listenfd = %d\n",port,listenfd);
     return listenfd;
 }
+
+static void handle_accpet(int epollfd, int listenfd)
+{
+    struct sockaddr_in cliaddr;
+    socklen_t cliaddrlen = sizeof(cliaddr);
+    int clifd = accept(listenfd,(struct sockaddr*)&cliaddr,&cliaddrlen);
+    if (clifd == -1)
+        perror("accpet error:");
+    else
+    {
+        printf("accept a new client: %s:%d,fd=%d\n",inet_ntoa(cliaddr.sin_addr),cliaddr.sin_port,clifd);
+        //添加一个客户描述符和事件
+        add_event(epollfd,clifd,EPOLLIN);
+    }
+}
+
 static void handle_events(int epollfd, struct epoll_event *events, int num, int listenfd)
 {
     int i;
@@ -81,60 +83,11 @@ static void handle_events(int epollfd, struct epoll_event *events, int num, int 
             do_write(epollfd, fd, Udp2Tcp_qid);
     }
 }
-static void handle_accpet(int epollfd, int listenfd)
+
+void* TCP_thread(void *arg)
 {
-    struct sockaddr_in cliaddr;
-    socklen_t cliaddrlen = sizeof(cliaddr);
-    int clifd = accept(listenfd,(struct sockaddr*)&cliaddr,&cliaddrlen);
-    if (clifd == -1)
-        perror("accpet error:");
-    else
-    {
-        printf("accept a new client: %s:%d,fd=%d\n",inet_ntoa(cliaddr.sin_addr),cliaddr.sin_port,clifd);
-        //添加一个客户描述符和事件
-        add_event(epollfd,clifd,EPOLLIN);
-    }
-}
-static void do_read(int epollfd, int fd, int qid)
-{
-    char *buf = (char*)malloc(MAXSIZE);
-    int nread = read(fd, buf, MAXSIZE);
-    if (nread == -1)
-    {
-        perror("read error:");
-        close(fd);
-        delete_event(epollfd, fd, EPOLLIN);
-    }
-    else if (nread == 0)
-    {
-        fprintf(stderr,"client close,fd=%d\n", fd);
-        close(fd);
-        delete_event(epollfd, fd, EPOLLIN);
-    }
-    else
-    {
-        printf("read message is: %s,fd=%d\n", buf, fd);
-        //修改描述符对应的事件，由读改为写
-        modify_event(epollfd, fd, EPOLLOUT);
-    }
-}
-static void do_write(int epollfd, int fd, int qid)
-{
-    struct Terminal_MsgSt msg = {0};
-    msg.MsgType = IPC_NOWAIT;
-    int result = msgrcv(qid, &msg, sizeof(msg.msg), 0, IPC_NOWAIT);
-    if(result >= 0)
-    {
-        int nwrite = write(fd, msg.msg->data, msg.msg->length);
-        if (nwrite == -1)
-        {
-            perror("write error:");
-            close(fd);
-            delete_event(epollfd, fd, EPOLLOUT);
-        }
-        else
-            modify_event(epollfd, fd, EPOLLIN);
-        free(msg.msg->data);
-        free(msg.msg);
-    }
+    int listen_fd = SocketInit("", TCP_PORT);
+    listen(listen_fd,LISTENQ);
+    do_epoll(listen_fd, handle_events);
+    close(listen_fd);
 }
