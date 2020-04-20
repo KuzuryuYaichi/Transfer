@@ -1,14 +1,14 @@
 #ifndef _TCP_SERVER_H_
 #define _TCP_SERVER_H_
 
-#define IPADDRESS   "127.0.0.1"
 #define LISTENQ     1           //这个程序中只接纳一个Client
 #define MAXCONN     60000
-#define MAXSIZE     1024
 
-#define LOCAL_IP INADDR_ANY
-#define TCP_PORT 8080
+#define TCP_LOCAL_IP "128.0.1.1"
+#define TCP_LOCAL_PORT 4000
 
 void* TCP_thread(void *arg);
+int TcpSocketInit(const char *ip, const int port);
+void handle_accpet(int epollfd, int listenfd);
 
 #endif

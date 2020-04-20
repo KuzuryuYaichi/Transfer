@@ -1,10 +1,10 @@
 .SUFFIXES : .x .o .c .s
 
-CC := aarch64-linux-gnu-gcc
-STRIP := aarch64-linux-gnu-strip
+CC = aarch64-linux-gnu-gcc
+STRIP = aarch64-linux-gnu-strip
 
 TARGET = t2
-SRCS := Terminal.c TCPServer.c UDP.c EpollEvent.c
+SRCS = Terminal.c Monitor.c TCPServer.c UDP.c EpollEvent.c
 LIBS = -lpthread -lc -lgcc -lm
 
 all:

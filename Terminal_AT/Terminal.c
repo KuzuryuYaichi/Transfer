@@ -34,20 +34,16 @@
 #include "TCPServer.h"
 #include "Terminal.h"
 #include "TCPServer.h"
+#include "Monitor.h"
 
-/*******            Tcp2Udp_Queue            ********
-********            ============>            ********
-******** TCP_Thread               UDP_Thread ********
-********            <============            ********
-********            Udp2Tcp_Queue            *******/
+/*                Tcp2Udp_Queue              
+                  ============>               
+   TCP_Deal_Func     Monitor    UDP_Deal_Func 
+                  <============               
+                  Udp2Tcp_Queue               */
 
 int Tcp2Udp_qid = 0, Udp2Tcp_qid = 0;
 int Server_time = 0;
-
-RUNNING_STATE isRunning = POWER_OFF, state = POWER_OFF;
-INIT_AT ATState = NEED_TO_INIT;
-
-void (*tcp_func)(int) = NULL;
 
 void t_daemon(char* file)
 {
@@ -71,7 +67,7 @@ void initEnv()
 {
     signal(SIGCHLD, SIG_DFL);
     signal(SIGPIPE, SIG_IGN);
-    signal(SIGALRM,HeartAlarmHandler);
+    signal(SIGALRM, HeartAlarmHandler);
 }
 
 void initQueue()
@@ -101,37 +97,45 @@ void initQueue()
 
 void main_loop()
 {
-    pthread_t TCP_tid, UDP_tid;
-    if(pthread_create(&TCP_tid,NULL,TCP_thread,NULL))
-    {
-        perror("Create TCP thread error!");
-        return;
-    }
-    if(pthread_create(&UDP_tid,NULL,UDP_thread,NULL))
-    {
-        perror("Create UDP thread error!");
-        return;
-    }
-    if(pthread_join(TCP_tid,NULL))
-    {
-        perror("wait TCP thread error!!");
-        return;
-    }
-    if(pthread_join(UDP_tid,NULL))
-    {
-        perror("wait UDP thread error!!");
-        return;
-    }
+    // pthread_t TCP_tid, UDP_tid;
+    // if(pthread_create(&TCP_tid,NULL,TCP_thread,NULL))
+    // {
+    //     perror("Create TCP thread error!");
+    //     return;
+    // }
+    // if(pthread_create(&UDP_tid,NULL,UDP_thread,NULL))
+    // {
+    //     perror("Create UDP thread error!");
+    //     return;
+    // }
+    // if(pthread_join(TCP_tid,NULL))
+    // {
+    //     perror("wait TCP thread error!!");
+    //     return;
+    // }
+    // if(pthread_join(UDP_tid,NULL))
+    // {
+    //     perror("wait UDP thread error!!");
+    //     return;
+    // }
+    // if(msgctl(Tcp2Udp_qid,IPC_RMID,0) < 0) perror("TCP2UDP IPC_MSG_QUEUE REMOVE FAILED\r\n");
+    // if(msgctl(Udp2Tcp_qid,IPC_RMID,0) < 0) perror("UDP2TCP IPC_MSG_QUEUE REMOVE FAILED\r\n");
 
-    if(msgctl(TCP_tid,IPC_RMID,0) < 0) perror("TCP IPC_MSG_QUEUE REMOVE FAILED\r\n");
-    if(msgctl(UDP_tid,IPC_RMID,0) < 0) perror("UDP IPC_MSG_QUEUE REMOVE FAILED\r\n");
+    pthread_t MON_tid;
+    if(pthread_create(&MON_tid,NULL,MON_thread,NULL))
+    {
+        perror("Create MON thread error!");
+        return;
+    }
+    if(pthread_join(MON_tid,NULL))
+    {
+        perror("wait MON thread error!!");
+        return;
+    } 
 }
 
 int main(int argc,char *argv[])
 {
-    printf("/**************************************APP**************************************/\r\n");
-    initEnv();
-
     pid_t pid = fork();
     if(pid < 0)
     {
@@ -143,14 +147,14 @@ int main(int argc,char *argv[])
         exit(0);
     }
     umask(0);
-    //创建新的会话，设置本进程为进程组的首领
     pid_t sid = setsid();
     if (sid < 0)
     {
         return 0;
     }
+
     char szPath[128] = {0};
-    if(getcwd(szPath,sizeof(szPath)) == NULL)
+    if(getcwd(szPath,sizeof(szPath)))
     {
         chdir(szPath);
         printf("set current path succ [%s]\n",szPath);
@@ -161,7 +165,10 @@ int main(int argc,char *argv[])
         exit(1);
     }
     
+    printf("/**************************************APP**************************************/\r\n");
+    initEnv();
     initQueue();
     main_loop();
+    printf("Exit t2 Program\r\n");
     return 0;
 }
