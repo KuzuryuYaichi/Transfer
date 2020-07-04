@@ -1,19 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
- 
-#include <netinet/in.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/epoll.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/msg.h>
- 
-#include <sys/resource.h>
-#include <signal.h>
-#include <fcntl.h>
 #include "TCPServer.h"
 #include "TypeDefine.h"
 #include "EpollEvent.h"
@@ -60,7 +49,7 @@ void handle_accpet(int epollfd, int listenfd)
         perror("accpet error:");
     else
     {
-        printf("accept a new client: %s:%d, fd = %d\n",inet_ntoa(cliaddr.sin_addr),cliaddr.sin_port,clifd);
+        printf("accept a new client: %s:%d, fd = %d\n", inet_ntoa(cliaddr.sin_addr),cliaddr.sin_port,clifd);
         //添加一个客户描述符和事件
         add_event(epollfd,clifd,EPOLLIN);
     }

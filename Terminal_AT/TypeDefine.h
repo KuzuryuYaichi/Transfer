@@ -1,8 +1,6 @@
 #ifndef _TYPE_DEFINE_H_
 #define _TYPE_DEFINE_H_
 
-#include <sys/types.h>
-
 #define bool int    //linux C中没有bool类型
 #define false 0     //linux C中没有bool类型
 #define true  1     //linux C中没有bool类型
