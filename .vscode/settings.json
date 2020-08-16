@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "stdio.h": "c",
+        "gpio.h": "c",
+        "if.h": "c",
+        "msg.h": "c",
+        "epollevent.h": "c",
+        "monitor.h": "c",
+        "typedefine.h": "c",
+        "inet.h": "c"
+    }
+}

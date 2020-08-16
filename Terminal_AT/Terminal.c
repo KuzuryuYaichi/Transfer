@@ -20,8 +20,7 @@
                   <============               
                   Udp2Tcp_Queue               */
 
-int Tcp2Udp_qid = 0, Udp2Tcp_qid = 0;
-int Server_time = 0;
+int Tcp2Udp_qid_CC = 0, Udp2Tcp_qid_CC = 0, Tcp2Udp_qid_FC = 0, Udp2Tcp_qid_FC = 0;
 
 void t_daemon(char* file)
 {
@@ -50,55 +49,51 @@ void initEnv()
 
 void initQueue()
 {
-    while(Tcp2Udp_qid<=0)
+    while(Tcp2Udp_qid_CC<=0)
     {
-        Tcp2Udp_qid = msgget(IPC_PRIVATE,IPC_CREAT|0666);
-        if(Tcp2Udp_qid<=0)printf("creat Tcp2Udp queue failed !\r\n");
+        Tcp2Udp_qid_CC = msgget(IPC_PRIVATE,IPC_CREAT|0666);
+        if(Tcp2Udp_qid_CC<=0)printf("creat Tcp2Udp_CC queue failed !\r\n");
 
         struct timeval timeout={0,10000};
         select(0,NULL,NULL,NULL,&timeout);
     }
-    printf("Tcp2Udp_qid is : %d \r\n",Tcp2Udp_qid);
+    printf("Tcp2Udp_qid_CC is : %d \r\n",Tcp2Udp_qid_CC);
 
-    while(Udp2Tcp_qid<=0)
+    while(Udp2Tcp_qid_CC<=0)
     {
-        Udp2Tcp_qid = msgget(IPC_PRIVATE,IPC_CREAT|0666);
-        if(Udp2Tcp_qid<=0)printf("creat Udp2Tcp queue failed !\r\n");
+        Udp2Tcp_qid_CC = msgget(IPC_PRIVATE,IPC_CREAT|0666);
+        if(Udp2Tcp_qid_CC<=0)printf("creat Udp2Tcp_CC queue failed !\r\n");
 
         struct timeval timeout={0,10000};
         select(0,NULL,NULL,NULL,&timeout);
     }
-    printf("Udp2Tcp_qid is : %d \r\n",Udp2Tcp_qid);
+    printf("Udp2Tcp_qid_CC is : %d \r\n",Udp2Tcp_qid_CC);
+
+    while(Tcp2Udp_qid_FC<=0)
+    {
+        Tcp2Udp_qid_FC = msgget(IPC_PRIVATE,IPC_CREAT|0666);
+        if(Tcp2Udp_qid_FC<=0)printf("creat Tcp2Udp_FC queue failed !\r\n");
+
+        struct timeval timeout={0,10000};
+        select(0,NULL,NULL,NULL,&timeout);
+    }
+    printf("Tcp2Udp_qid_FC is : %d \r\n",Tcp2Udp_qid_FC);
+
+    while(Udp2Tcp_qid_FC<=0)
+    {
+        Udp2Tcp_qid_FC = msgget(IPC_PRIVATE,IPC_CREAT|0666);
+        if(Udp2Tcp_qid_FC<=0)printf("creat Udp2Tcp_FC queue failed !\r\n");
+
+        struct timeval timeout={0,10000};
+        select(0,NULL,NULL,NULL,&timeout);
+    }
+    printf("Udp2Tcp_qid_FC is : %d \r\n",Udp2Tcp_qid_FC);
 
     printf("t2 pid is:%d\r\n",getpid());
 }
 
 void main_loop()
 {
-    // pthread_t TCP_tid, UDP_tid;
-    // if(pthread_create(&TCP_tid,NULL,TCP_thread,NULL))
-    // {
-    //     perror("Create TCP thread error!");
-    //     return;
-    // }
-    // if(pthread_create(&UDP_tid,NULL,UDP_thread,NULL))
-    // {
-    //     perror("Create UDP thread error!");
-    //     return;
-    // }
-    // if(pthread_join(TCP_tid,NULL))
-    // {
-    //     perror("wait TCP thread error!!");
-    //     return;
-    // }
-    // if(pthread_join(UDP_tid,NULL))
-    // {
-    //     perror("wait UDP thread error!!");
-    //     return;
-    // }
-    // if(msgctl(Tcp2Udp_qid,IPC_RMID,0) < 0) perror("TCP2UDP IPC_MSG_QUEUE REMOVE FAILED\r\n");
-    // if(msgctl(Udp2Tcp_qid,IPC_RMID,0) < 0) perror("UDP2TCP IPC_MSG_QUEUE REMOVE FAILED\r\n");
-
     pthread_t MON_tid;
     if(pthread_create(&MON_tid,NULL,MON_thread,NULL))
     {
@@ -114,28 +109,28 @@ void main_loop()
 
 int main(int argc,char *argv[])
 {
-    pid_t pid = fork();
-    if(pid < 0)
-    {
-        perror("fork error!");
-        exit(1);
-    }
-    else if(pid > 0)
-    {
-        exit(0);
-    }
-    umask(0);
-    pid_t sid = setsid();
-    if (sid < 0)
-    {
-        return 0;
-    }
+    // pid_t pid = fork();
+    // if(pid < 0)
+    // {
+    //     perror("fork error!");
+    //     exit(1);
+    // }
+    // else if(pid > 0)
+    // {
+    //     exit(0);
+    // }
+    // umask(0);
+    // pid_t sid = setsid();
+    // if (sid < 0)
+    // {
+    //     return 0;
+    // }
 
     char szPath[128] = {0};
     if(getcwd(szPath,sizeof(szPath)))
     {
         chdir(szPath);
-        printf("set current path succ [%s]\n",szPath);
+        printf("set current path succ [%s]\n", szPath);
     }
     else
     {

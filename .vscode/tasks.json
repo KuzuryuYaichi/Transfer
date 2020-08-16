@@ -1,0 +1,19 @@
+{
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "aarch64-linux-gnu-gcc build active file",
+            "command": "/home/lyh/tool/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-gcc",
+            "args": [
+                "-g",
+                "${file}",
+                "-o",
+                "${fileDirname}/${fileBasenameNoExtension}"
+            ],
+            "options": {
+                "cwd": "/home/lyh/tool/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/bin"
+            }
+        }
+    ],
+    "version": "2.0.0"
+}

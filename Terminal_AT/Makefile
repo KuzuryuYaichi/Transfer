@@ -8,8 +8,8 @@ SRCS = Terminal.c Monitor.c TCPServer.c UDP.c EpollEvent.c
 LIBS = -lpthread -lc -lgcc -lm
 
 all:
-	$(CC) $(SRCS) -o $(TARGET) $(LIBS)
-	$(STRIP) $(TARGET)
+	$(CC) $(SRCS) -o $(TARGET) $(LIBS) -g
+#	$(STRIP) $(TARGET)
 
 clean:
 	rm -f *.o
